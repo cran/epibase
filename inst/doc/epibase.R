@@ -322,13 +322,14 @@ summary(x2)
 
 
 ## @knitr out.width=".75\\textwidth"
+library(ape)
 plot(get.trees(x2)[[1]])
 axisPhylo()
 
 
 ## @knitr tree1,fig.keep="last",out.width=".75\\textwidth"
 tree1 <- make.phylo(x.summerEur, locus=1, ask=FALSE, model="K80",
-                    plot=TRUE, color.by="dat", palette=seasun)
+                    plot=TRUE, color.by="dat")
 axisPhylo()
 
 
