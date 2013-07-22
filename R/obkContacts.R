@@ -26,72 +26,73 @@ setClassUnion("obkContactsOrNULL", c("obkContacts", "NULL"))
 ## contactEnd: if present, a vector of dates of end of contact
 ## duration: another way to specify contactEnd, as duration of contact; if dates (not numbers)
 ## are provided in contactFrom, 'duration' is expected to be days
-setMethod("initialize", "obkContacts", function(.Object, contactFrom=NULL, contactTo=NULL, directed=FALSE,
-                                                contactStart=NULL, contactEnd=NULL,duration=NULL) {
+setMethod("initialize", "obkContacts", function(.Object, from=NULL, to=NULL, directed=FALSE,
+                                                start=NULL, end=NULL,duration=NULL) {
 
     ## RETRIEVE PROTOTYPED OBJECT ##
     x <- .Object
 
     ## escape if the minimum information is not provided ##
-    if(is.null(contactFrom) || is.null(contactTo)) return(x)
+    if(is.null(from) || is.null(to)) return(x)
 
     ## escape of obkContacts is provided ##
-    if(inherits(contactFrom, "obkContacts")) return(contactFrom)
-    if(inherits(contactTo, "obkContacts")) return(contactTo)
+    if(inherits(from, "obkContacts")) return(from)
+    if(inherits(to, "obkContacts")) return(to)
 
 
     ## PROCESS ARGUMENTS
-    if(is.list(contactFrom)) contactFrom <- unlist(contactFrom)
-    if(is.list(contactTo)) contactFrom <- unlist(contactTo)
+    if(is.list(from)) from <- unlist(from)
+    if(is.list(to)) from <- unlist(to)
 
     ## fill slots
-    contactFrom <- as.character(contactFrom)
-    contactTo <- as.character(contactTo)
-    uniqueIDs <- unique(c(contactFrom,contactTo))
+    from <- as.character(from)
+    to <- as.character(to)
+    uniqueIDs <- unique(c(from,to))
     numIDs <- length(uniqueIDs)
-    numedges <- length(contactFrom)
+    numedges <- length(from)
     y <- network.initialize(numIDs,directed=directed,multiple=TRUE)
     network.vertex.names(y) <- uniqueIDs
     ## static network
-    if(is.null(contactStart)){
+    if(is.null(start)){
       for(i in 1:numedges){
-        v1 <- match(contactFrom[i],uniqueIDs)
-        v2 <- match(contactTo[i],uniqueIDs)
-        add.edge(y,v2,v1)
+        v1 <- match(from[i],uniqueIDs)
+        v2 <- match(to[i],uniqueIDs)
+        add.edge(y,v1,v2)
         }
     }
     ## dynamic network
-    if(!is.null(contactStart)){
-      if(is.null(contactEnd)){
-        if(is.null(duration)) stop("Need to specify duration if contactEnd is missing")
+    if(!is.null(start)){
+      if(is.null(end)){
+        if(is.null(duration)) stop("Need to specify duration if end is missing")
         # single timestamps
-        contactEnd <- contactStart+duration
+        end <- start+duration
       }
 
       ## handle 'POSIXct' dates
-      if(inherits(contactStart, "POSIXct")){
-          contactStart <- as.Date(contactStart)
+      if(inherits(start, "POSIXct")){
+          start <- as.Date(start)
       }
-      if(inherits(contactEnd, "POSIXct")){
-          contactEnd <- as.Date(contactEnd)
+      if(inherits(end, "POSIXct")){
+          end <- as.Date(end)
       }
 
       ## handle 'Date' dates
-      if(inherits(contactStart, "Date")){
-          x@origin <- min(contactStart)
-          contactStart <- as.numeric(contactStart - x@origin)
-          contactEnd <- as.numeric(contactEnd - x@origin)
+      if(inherits(start, "Date")){
+          x@origin <- min(start)
+          start <- as.numeric(start - x@origin)
+          end <- as.numeric(end - x@origin)
       } else {
           x@origin <- NULL
       }
       for(i in 1:numedges){
-        v1 <- match(contactFrom[i],uniqueIDs)
-        v2 <- match(contactTo[i],uniqueIDs)
-        add.edge(y,v2,v1)
-        activate.edges(y,onset=contactStart[i],terminus=contactEnd[i],e=get.edgeIDs(y,v=v1,alter=v2,neighborhood="out"))
+        v1 <- match(from[i],uniqueIDs)
+        v2 <- match(to[i],uniqueIDs)
+        add.edge(y,v1,v2)
+        activate.edges(y,onset=start[i],terminus=end[i],e=get.edgeIDs(y,v=v1,alter=v2,neighborhood="out"))
       }
     }
     x@contacts <- y
+
     return(x)
 }) # end obkContacts constructor
 
@@ -112,6 +113,7 @@ setMethod("get.nindividuals","obkContacts", function(x, ...){
     return(x@contacts%n%"n")
 })
 
+
 ######################
 ## get.individuals ##
 ######################
@@ -121,9 +123,29 @@ setMethod("get.individuals","obkContacts", function(x, ...){
 })
 
 
-#####################
-#### get.contacts ###
-#####################
+###############
+## get.dates ##
+###############
+setMethod("get.dates","obkContacts", function(x, ...){
+    if(is.null(x@contacts)) return(NULL)
+    out <- x@origin + get.change.times(x@contacts)
+    return(out)
+})
+
+
+################
+## get.ndates ##
+################
+setMethod("get.ndates","obkContacts", function(x, ...){
+    if(is.null(x@contacts)) return(0)
+    return(length(get.dates(x)))
+})
+
+
+
+##################
+## get.contacts ##
+##################
 setMethod("get.contacts","obkContacts", function(x, from=NULL, to=NULL, ...){
     if(is.null(x@contacts)) return(0)
 
@@ -133,22 +155,22 @@ setMethod("get.contacts","obkContacts", function(x, from=NULL, to=NULL, ...){
         to <- as.Date(to)
     }
 
+    ## handle character dates
+    if(is.character(from)) from <- .process.Date(from)
+    if(is.character(to)) to <- .process.Date(to)
+
     ## handle 'Date' dates
-    if(inherits(from, "Date")){
-        x@origin <- min(from)
-        from <- as.numeric(from - x@origin)
-        to <- as.numeric(to - x@origin)
-    }
+    if(inherits(from, "Date")) from <- as.numeric(from - x@origin)
+    if(inherits(to, "Date")) to <- as.numeric(to - x@origin)
 
-    if(!is.null(from) || !is.null(to)) {
-        res <- network.extract(x@contacts, onset=from, terminus=to)
-    } else {
-        res <- x@contacts
-    }
-
+    ## extract network
+    if(is.null(from)) from <- -1
+    if(is.null(to)) to <- Inf
+    res <- network.extract(x@contacts, onset=from, terminus=to)
 
     return(res)
 })
+
 
 ######################
 #### get.ncontacts ###
@@ -157,6 +179,7 @@ setMethod("get.ncontacts","obkContacts", function(x, from=NULL, to=NULL, ...){
     if(is.null(x@contacts)) return(0)
     return(network.edgecount(get.contacts(x, from=from, to=to)))
 })
+
 
 ######################
 ####  SHOW METHOD ####
@@ -202,15 +225,57 @@ setMethod ("plot", "obkContacts", function(x, y=NULL, labels=get.individuals(x),
 ##########################
 #### AS.MATRIX METHOD ####
 ##########################
-
-setMethod ("as.matrix", "obkContacts", function(x, matrix.type=c("adjacency","incidence","edgelist"), ...){
+setMethod ("as.matrix", "obkContacts", function(x, matrix.type=c("adjacency","incidence","edgelist"),
+                                                use.labels=TRUE, ...){
     g <- x@contacts
     if(is.null(g)) return(NULL)
     matrix.type <- match.arg(matrix.type)
     if(is.networkDynamic(g)) g <- network.collapse(g)
     set.network.attribute(g, "multiple", FALSE)
-    return(as.matrix(g, matrix.type=matrix.type))
+    out <- as.matrix(g, matrix.type=matrix.type)
+    if(use.labels){
+        if(matrix.type=="edgelist"){
+            lab <- attr(out, "vnames")
+            out <- matrix(lab[out], ncol=2)
+        }
+        if(matrix.type=="incidence"){
+            temp <- as.matrix(g, matrix.type="edgelist")
+            v.lab <- attr(temp, "vnames")
+            e.lab <- apply(matrix(v.lab[temp],ncol=2), 1, paste, collapse="-")
+            rownames(out) <- v.lab
+            colnames(out) <- e.lab
+        }
+    }
+    return(out)
 })
+
+
+
+##############################
+#### AS.DATA.FRAME METHOD ####
+##############################
+setMethod ("as.data.frame", "obkContacts", function(x, row.names = NULL, optional = FALSE,
+                                                    use.labels=TRUE, ...){
+    g <- x@contacts
+    if(is.null(g)) return(NULL)
+    if(is.networkDynamic(g)) {
+        out <- as.data.frame(g, row.names=row.names, optional=optional, ...)
+        if(!is.null(x@origin)){
+            out$onset <- x@origin + out$onset
+            out$terminus <- x@origin + out$terminus
+        }
+        if(use.labels){
+            lab <- get.individuals(x)
+            out$tail <- lab[out$tail]
+            out$head <- lab[out$head]
+        }
+    } else {
+        out <- as.matrix(x, matrix.type="edgelist", use.labels=use.labels)
+    }
+
+    return(out)
+})
+
 
 
 

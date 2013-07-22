@@ -35,7 +35,6 @@
 ###################
 ## .process.Date ##
 ###################
-
 .process.Date <- function(x, format=NULL){
     if(inherits(x, "Date")) return(x)
 
@@ -43,7 +42,14 @@
 
         bshape <- 0
         if(is.factor(x)) x <- as.character(x)
-        x1 <- x[1]
+
+        ## find the first non-NA value ##
+        x1 <- x[!is.na(x)][1]
+
+        ## escape if all values are NA ##
+        if(is.na(x1)){
+            return(as.Date(rep(NA, length(x))))
+        }
         symb <- unlist(strsplit(gsub("[[:digit:]]","", x1),""))[1L]
         temp <- unlist(strsplit(x1, paste("[",symb,"]",sep="")))
 
@@ -77,3 +83,31 @@
 
     return(as.Date(x,format=format))
 } # end .process.Date
+
+
+
+
+
+####################
+## .inlineSummary ##
+####################
+## FUNCTION TO GET INLINE SUMMARY FOR ONE VECTOR ##
+.inlineSummary <- function(x, ...){
+    cat("class: ", class(x), ",  ", sep="")
+    if(inherits(x,"Date")) {
+        cat("mean: ", format(mean(x, na.rm=TRUE), ...),
+            ", range: [", format(min(x, na.rm=TRUE), ...), ";", format(max(x, na.rm=TRUE), ...), "],  ",
+            sum(is.na(x)), " NAs", sep="")
+    } else if(is.numeric(x)){
+        cat("mean: ", format(mean(x, na.rm=TRUE), ...), ",  sd:", format(sd(x, na.rm=TRUE), ...),
+            ", range: [", format(min(x, na.rm=TRUE), ...), ";", format(max(x, na.rm=TRUE), ...), "],  ",
+            sum(is.na(x)), " NAs", sep="")
+    } else if(is.character(x) || is.factor(x)){
+        cat(length(unique(x)), " unique values,  frequency range: [",
+            min(table(x)), ";", max(table(x)), "],  ",
+            sum(is.na(x)), " NAs", sep="")
+    }
+    cat("\n")
+}
+
+

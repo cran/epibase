@@ -7,8 +7,11 @@ opts_chunk$set(fig.path='figs/epibase-', fig.keep='last', dev='pdf', fig.width=7
 options(width=80)
 
 
-## @knitr 
+## @knitr results='hide'
 library(epibase)
+
+
+## @knitr 
 getClassDef("obkData")
 
 
@@ -26,7 +29,7 @@ summary(ToyOutbreak)
 
 ## @knitr 
 head(ToyOutbreak@individuals)
-head(ToyOutbreak@samples)
+head(ToyOutbreak@records$Fever)
 ToyOutbreak@trees
 
 
@@ -38,6 +41,8 @@ is.list(ToyOutbreak@dna@dna)
 names(ToyOutbreak@dna@dna)
 ToyOutbreak@dna@dna$gene1
 class(ToyOutbreak@dna@dna$gene1)
+class(ToyOutbreak@dna@meta)
+head(ToyOutbreak@dna@meta)
 
 
 ## @knitr 
@@ -56,13 +61,13 @@ plot(oc.static, main="Static contact network")
 onset <- c(1, 2, 3, 4, 5)
 terminus <- c(1.2, 4, 3.5, 4.1, 6)
 oc.dynamic <- new("obkContacts",cf,ct, directed=FALSE,
-                  contactStart=onset, contactEnd=terminus)
+                  start=onset, end=terminus)
 slotNames(oc.dynamic)
 oc.dynamic
 
 
 ## @knitr 
-data.frame(onset,terminus,ct,cf)
+as.data.frame(oc.dynamic)
 
 
 ## @knitr dynNet,out.width=".9\\textwidth"
@@ -88,21 +93,17 @@ names(ToyOutbreakRaw)
 
 
 ## @knitr 
-head(ToyOutbreakRaw$samples)
 head(ToyOutbreakRaw$individuals)
-x <- new("obkData", samples=ToyOutbreakRaw$samples,
-         individuals=ToyOutbreakRaw$individuals)
-head(x)
+
+
+## @knitr 
+lapply(ToyOutbreakRaw$records, head)
 
 
 ## @knitr 
 head(ToyOutbreakRaw$contacts)
 head(ToyOutbreakRaw$contacts.start)
 head(ToyOutbreakRaw$contacts.end)
-
-
-## @knitr 
-head(ToyOutbreakRaw$clinical$Fever)
 
 
 ## @knitr 
@@ -114,12 +115,16 @@ ToyOutbreakRaw$trees
 
 
 ## @knitr 
-x <- new ("obkData", individuals=ToyOutbreakRaw$individuals,
-          samples=ToyOutbreakRaw$samples,
-          clinical=ToyOutbreakRaw$clinical, contacts=ToyOutbreakRaw$contacts,
-          contacts.start=ToyOutbreakRaw$contacts.start,
-          contacts.end=ToyOutbreakRaw$contacts.end,
-          dna=ToyOutbreakRaw$dna, trees=ToyOutbreakRaw$trees)
+attach(ToyOutbreakRaw)
+
+x <- new ("obkData", individuals=individuals, records=records,
+          contacts=contacts, contacts.start=contacts.start,
+          contacts.end=contacts.end, dna=dna,
+          dna.individualID=dna.info$individualID,
+          dna.date=dna.info$date, sample=dna.info$sample, trees=trees)
+
+detach(ToyOutbreakRaw)
+
 head(x)
 summary(x)
 
@@ -143,27 +148,21 @@ opts_chunk$set(eval=TRUE, echo=TRUE)
 ## @knitr 
 data(ToyOutbreak)
 set.seed(1)
-get.nsamples(ToyOutbreak)
-toKeep <- sample(1:nrow(ToyOutbreak@samples), 5)
+toKeep <- sample(get.nindividuals(ToyOutbreak),5)
 toKeep
-x <- subset(ToyOutbreak, row.samples=toKeep)
+x <- subset(ToyOutbreak, individuals=toKeep)
 summary(x)
 
 
 ## @knitr 
 get.nindividuals(x)
+get.nindividuals(x, "records")
+get.nindividuals(x, "dna")
 get.nindividuals(x, "contacts")
-get.individuals(x)
-
 
 
 ## @knitr 
 get.individuals(ToyOutbreak, "contacts")
-
-
-## @knitr 
-get.nsamples(x)
-get.samples(x)
 
 
 ## @knitr 
@@ -207,6 +206,7 @@ get.ncontacts(x)
 
 ## @knitr getData1
 get.data(x,"temperature")
+get.data(x,"temperature", showSource=TRUE)
 
 
 ## @knitr 
@@ -230,16 +230,11 @@ get.data(x, "date", showSource=TRUE)
 
 
 ## @knitr 
-get.data(x, "date", where="clinical", showSource=TRUE)
+get.data(x, "date", where="records", showSource=TRUE)
 
 
 ## @knitr sugarman, warning=TRUE
 get.data(x, "sugarman")
-
-
-## @knitr warning=TRUE
-x@clinical <- NULL
-get.data(x, "date", where="clinical")
 
 
 ## @knitr out.width==".8\\textwidth"
@@ -253,42 +248,37 @@ as.matrix(x@contacts)
 as.matrix(x@contacts, "edgelist")
 
 
+## @knitr 
+as.data.frame(x@contacts)
+
+
 ## @knitr eval=FALSE, tidy=FALSE
-## subset(x, individuals=NULL, samples=NULL, locus=NULL, sequences=NULL,
-##        date.from=NULL, date.to=NULL, date.format=NULL,
-##        row.individuals=NULL, row.samples=NULL,...)
+## subset(x, individuals=NULL, locus=NULL, sequences=NULL,
+##        date.from=NULL, date.to=NULL, date.format=NULL, ...)
 
 
 ## @knitr subset1
 data(ToyOutbreak)
-set.seed(1)
-get.nsamples(ToyOutbreak)
-toKeep <- sample(1:nrow(ToyOutbreak@samples), 10)
-toKeep
-x <- subset(ToyOutbreak, row.samples=toKeep)
-summary(x)
-get.individuals(x)
-
-
-## @knitr 
-x1 <- subset(x, indiv=c("60","168"))
-
-
-## @knitr 
-x2 <- subset(x, indiv=c(3,5))
+x1 <- subset(ToyOutbreak, individuals=1:10)
+x2 <- subset(ToyOutbreak, get.individuals(ToyOutbreak)[1:10])
 identical(x1,x2)
 
 
 ## @knitr 
 data(FluH1N1pdm2009)
-x <- new("obkData", individuals = FluH1N1pdm2009$individuals, samples =
-         FluH1N1pdm2009$samples, dna = FluH1N1pdm2009$dna, trees =
-         FluH1N1pdm2009$trees)
-range(get.data(x, "date", where="samples"))
+attach(FluH1N1pdm2009)
+
+x <- new("obkData", individuals = individuals, dna = FluH1N1pdm2009$dna,
+      dna.individualID = samples$individualID, dna.date = samples$date,
+      trees = FluH1N1pdm2009$trees)
+
+detach(FluH1N1pdm2009)
+
+range(get.data(x, "date"))
 
 
 ## @knitr subsetdate
-min.date <- min(get.data(x, "date", where="samples"))
+min.date <- min(get.dates(x))
 min.date
 min.date+31
 x1 <- subset(x, date.to=min.date+31)
@@ -296,17 +286,12 @@ summary(x)
 summary(x1)
 
 
-## @knitr 
-toKeep <- get.data(x, "location")=="Mexico"
-sum(toKeep)
-x.mex <- subset(x, row.individuals=toKeep)
-summary(x.mex)
-head(x.mex)
-
-
 ## @knitr lastsubset
+temp <- get.data(x, "location", showSource=TRUE)
+head(temp)
+toKeep <- temp$individualID[temp$location=="Europe"]
 x.summerEur <- subset(x, date.from="01/06/2009", date.to="31/08/2009",
-                      row.indiv=get.data(x, "location")=="Europe")
+                      indiv=toKeep)
 summary(x.summerEur)
 head(x.summerEur)
 
@@ -327,16 +312,30 @@ plot(get.trees(x2)[[1]])
 axisPhylo()
 
 
+## @knitr 
+plot(x2, "phylo")
+
+
 ## @knitr tree1,fig.keep="last",out.width=".75\\textwidth"
-tree1 <- make.phylo(x.summerEur, locus=1, ask=FALSE, model="K80",
-                    plot=TRUE, color.by="dat")
+x3 <- make.phylo(x.summerEur, locus=1, ask=FALSE, model="K80")
+plot(get.trees(x3)[[1]])
 axisPhylo()
 
 
 ## @knitr fig.width=10, out.width="\\textwidth"
 set.seed(1)
-x <- simuEpi(N=50,beta=0.01,showPlots=TRUE,makePhylo=TRUE)
+x <- simuEpi(N=50, D=20, beta=0.01,plot=TRUE,makePhylo=TRUE)
 summary(x)
+x$dynamics
+summary(x$x)
+
+
+## @knitr 
+plot(x$x, "contacts", main="Transmission tree")
+
+
+## @knitr 
+plot(x$x, "phylo")
 
 
 ## @knitr 
@@ -348,16 +347,20 @@ summary(HorseFlu)
 plot(HorseFlu,'timeline')
 
 
+## @knitr 
+args(plotIndividualTimeline)
+
+
+## @knitr 
+plot(HorseFlu,'timeline', what="Vac")
+
+
+## @knitr 
+plotIndividualTimeline(HorseFlu, what="dna", colorBy="yardID", orderBy="yardID",plotNames=TRUE)
+
+
 ## @knitr plotfirst20
-plot(HorseFlu,selection=1:20)
-
-
-## @knitr 
-plot(HorseFlu,selection=1:20,colorBy='yardID')
-
-
-## @knitr 
-plot(HorseFlu,selection=1:20,colorBy='yardID',orderBy='yardID')
+plot(HorseFlu,selection=1:20, colorBy="yardID", orderBy="yardID", size=5)
 
 
 ## @knitr 
@@ -366,11 +369,11 @@ head(ToyOutbreak@individuals)
 
 
 ## @knitr plotgeo1,dev='png',results='hide',message=FALSE
-plot(ToyOutbreak,'geo', location=c('lon','lat'), isLonLat=TRUE, zoom=14)
+plot(ToyOutbreak,'geo', location=c('lon','lat'), zoom=14)
 
 
 ## @knitr dev='png',results='hide',message=FALSE
-plot(ToyOutbreak,'geo', location=c('lon','lat'), isLonLat=TRUE, zoom=15,
+plot(ToyOutbreak,'geo', location=c('lon','lat'), zoom=15,
      colorBy='Sex', center='11')
 
 
@@ -385,10 +388,15 @@ plot(HorseFlu,'mst',individualID=42)
 
 ## @knitr 
 data(FluH1N1pdm2009)
-x <- new("obkData", individuals = FluH1N1pdm2009$individuals,
-         samples = FluH1N1pdm2009$samples, dna = FluH1N1pdm2009$dna,
-         trees = FluH1N1pdm2009$trees)
-head(x)
+attach(FluH1N1pdm2009)
+
+x <- new("obkData", individuals = individuals, dna = FluH1N1pdm2009$dna,
+      dna.individualID = samples$individualID, dna.date = samples$date,
+      trees = FluH1N1pdm2009$trees)
+
+detach(FluH1N1pdm2009)
+
+summary(x)
 
 
 ## @knitr 
@@ -410,8 +418,7 @@ plotggphy(x)
 
 
 ## @knitr pdh1n1tree2, out.width="0.8\\textwidth"
-p <- plotggphy(x, ladderize = TRUE, build.tip.attribute = TRUE,
-               branch.unit = "year", tip.dates = "date")
+p <- plotggphy(x, ladderize = TRUE,  branch.unit = "year")
 
 
 ## @knitr 
@@ -419,8 +426,7 @@ head(x@individuals)
 
 
 ## @knitr pdh1n1tree3, out.width="\\textwidth"
-p <- plotggphy(x, ladderize = TRUE, build.tip.attribute = TRUE,
-               branch.unit = "year", tip.dates = "date", tip.colour = "location",
-               tip.size = 3, tip.alpha = 0.75)
+p <- plotggphy(x, ladderize = TRUE, branch.unit = "year",
+               tip.color = "location", tip.size = 3, tip.alpha = 0.75)
 
 

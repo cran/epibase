@@ -38,7 +38,7 @@
   \code{\link{plotggMST}}, \code{\link{plotggphy}}, \code{\link{plot.obkContacts}}.
 }
 \author{
-  Rolf Ypma  \email{Rolf.Ypma@rivm.nl}
+  Rolf Ypma  \email{Rolf.Ypma@rivm.nl}, 
   Thibaut Jombart \email{t.jombart@imperial.ac.uk}
 }
 \examples{
@@ -51,7 +51,7 @@ plot(HorseFlu,orderBy='yardID',colorBy='yardID',
      selection=1:30) # only the first 30
 
 ## plot geographic distribution of individuals
-plot(HorseFlu, "geo", location=c('lon','lat'), TRUE, colorBy='sex',
+plot(HorseFlu, "geo", location=c('lon','lat'), colorBy='sex',
      zoom=12,center='9')
 
 ## plot minimum spanning tree for first 10 individuals

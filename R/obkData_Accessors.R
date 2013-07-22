@@ -58,14 +58,8 @@ setMethod("get.dna", "obkData", function(x, locus=NULL, id=NULL, ...){
 #####################
 ## get.individuals ##
 #####################
-setMethod("get.individuals", "obkData", function(x, data=c("all", "samples", "individuals", "clinical", "contacts"), ...){
+setMethod("get.individuals", "obkData", function(x, data=c("all", "individuals", "records", "contacts", "dna"), ...){
     data <- match.arg(data)
-
-    ## list individuals in @samples
-    if(data=="samples"){
-        if(is.null(x@samples)) return(NULL)
-        return(unique(x@samples$individualID))
-    }
 
     ## list individuals in @individuals
     if(data=="individuals"){
@@ -73,42 +67,31 @@ setMethod("get.individuals", "obkData", function(x, data=c("all", "samples", "in
         return(row.names(x@individuals))
     }
 
-    ## list individuals in @clinical
-    if(data=="clinical"){
-      if(is.null(x@clinical)) return(NULL)
-      v_ind<-c()
-      for(i in 1:length(x@clinical)){
-        v_ind<-c(v_ind,x@clinical[[i]]$individualID)
-      }
-      return(unique(v_ind))
+    ## list individuals in @records
+    if(data=="records"){
+        if(is.null(x@records)) return(NULL)
+        out <- unlist(lapply(x@records, function(e) e$individualID), use.names=FALSE)
+        return(unique(out))
     }
 
-	## list individuals in @contacts
-	if(data=="contacts"){
-		if(is.null(x@contacts)) return(NULL)
-		return(get.individuals(x@contacts))
-  	}
+    ## list individuals in @contacts
+    if(data=="contacts"){
+        if(is.null(x@contacts)) return(NULL)
+        return(get.individuals(x@contacts))
+    }
 
-	## list all individuals in the object (in @individuals, @samples, @clinical and @contacts)
-	if(data=="all"){
-		v_ind<-c()
-		if(!is.null(x@samples)){
-			v_ind<-c(v_ind,unique(x@samples$individualID))
-		}
-		if(!is.null(x@individuals)){
-			v_ind<-c(v_ind,row.names(x@individuals))
-		}
-		if(!is.null(x@clinical)){
-			for(i in 1:length(x@clinical)){
-				v_ind<-c(v_ind,x@clinical[[i]]$individualID)
-			}
-		}
-		if(!is.null(x@contacts)){
-			v_ind<-c(v_ind,get.individuals(x@contacts))
-		}
-		return(unique(v_ind))
-	}
+    ## list individuals in @contacts
+    if(data=="dna"){
+        if(is.null(x@dna)) return(NULL)
+        return(get.individuals(x@dna))
+    }
 
+
+    ## list all individuals in the object (in @individuals, @records and @contacts)
+    if(data=="all"){
+        out <- unlist(lapply(c("individuals", "records", "contacts", "dna"), function(e) get.individuals(x, e)), use.names=FALSE)
+        return(unique(out))
+    }
 })
 
 
@@ -116,7 +99,7 @@ setMethod("get.individuals", "obkData", function(x, data=c("all", "samples", "in
 ######################
 ## get.nindividuals ##
 ######################
-setMethod("get.nindividuals", "obkData", function(x, data=c("all", "samples", "individuals", "clinical", "contacts"), ...){
+setMethod("get.nindividuals", "obkData", function(x, data=c("all", "individuals", "records", "contacts", "dna"), ...){
     data <- match.arg(data)
 
     return(length(get.individuals(x, data=data)))
@@ -124,80 +107,101 @@ setMethod("get.nindividuals", "obkData", function(x, data=c("all", "samples", "i
 
 
 
-#################
-## get.samples ##
-#################
-setMethod("get.samples", "obkData", function(x, ...){
-    if(is.null(x@samples)) return(NULL)
-    return(unique(x@samples$sampleID))
-})
 
 #################
-## get.nsamples ##
+## get.records ##
 #################
-setMethod("get.nsamples", "obkData", function(x, ...){
-    if(is.null(x@samples)) return(0)
-    return(length(unique(x@samples$sampleID)))
+setMethod("get.records", "obkData", function(x, ...){
+  if(is.null(x@records)) return(NULL)
+  return(names(x@records))
 })
 
 
 
+##################
+## get.nrecords ##
+##################
+setMethod("get.nrecords", "obkData", function(x, ...){
+  if(is.null(x@records)) return(0)
+  return(length(get.records(x)))
+})
+
+
 #################
-## get.clinicals ##
+## get.context ##
 #################
-setMethod("get.clinicals", "obkData", function(x, ...){
-  if(is.null(x@clinical)) return(NULL)
-  # return the list of names of the different clinical tables
-  return(unique(names(x@clinical)))
+setMethod("get.context", "obkData", function(x, ...){
+  if(is.null(x@context)) return(NULL)
+  return(names(x@context))
 })
 
 
 
-#################
-## get.nclinicals ##
-#################
-setMethod("get.nclinicals", "obkData", function(x, ...){
-  if(is.null(x@clinical)) return(0)
-  # return the number of different clinical tables
-  return(length(names(x@clinical)))
+##################
+## get.nrecords ##
+##################
+setMethod("get.ncontext", "obkData", function(x, ...){
+  if(is.null(x@context)) return(0)
+  return(length(get.context(x)))
 })
 
 
 ###############
 ## get.dates ##
 ###############
-setMethod("get.dates", "obkData", function(x, data=c("all","samples", "individuals", "clinical"),...){
+setMethod("get.dates", "obkData", function(x, data=c("all", "individuals", "records", "dna", "context", "contacts"),...){
 
   data <- match.arg(data)
 
-  result <- c()
-
-  ## list dates in @samples
-  if(data=="all" || data=="samples"){
-    #if(is.null(x@samples$date)) return(NULL)
-    result<-c(result, as.character(x@samples$date))
-  }
-
-  ## list dates in @individuals
-  if(data=="all" || data=="individuals"){
-    #if(is.null(x@individuals$date)) return(NULL)
-    result<-c(result,as.character(x@individuals$date))
-  }
-
-  ## list dates in @clinical
-  if(data=="all" || data=="clinical"){
-    #if(is.null(x@clinical)) return(NULL)
-    v_dates<-c()
-    for(i in 1:length(x@clinical)){
-      v_dates<-c(v_dates,as.character(x@clinical[[i]]$date))
+    ## list dates in @individuals
+    if(data=="individuals"){
+        if(is.null(x@individuals)) return(NULL)
+        return(x@individuals$date)
     }
-    #v_dates<-as.Date(v_dates,date.format= "%Y-%m-%d")
-    result<-c(result,v_dates)
-  }
-  result<-as.Date(result,date.format= "%Y-%m-%d")
-  return(unique(result))
 
-  })
+    ## list dates in @records
+    if(data=="records"){
+        if(is.null(x@records)) return(NULL)
+        out <- unlist(lapply(x@records, function(e) as.character(e$date)))
+        return(as.Date(out))
+    }
+
+    ## list dates in @context
+    if(data=="context"){
+      if(is.null(x@context)) return(NULL)
+      out <- unlist(lapply(x@context, function(e) as.character(e$date)))
+      return(as.Date(out))
+    }
+
+    ## list individuals in @dna
+    if(data=="dna"){
+        if(is.null(x@dna)) return(NULL)
+        return(get.dates(x@dna))
+    }
+
+  ## list individuals in @contacts
+    if(data=="contacts"){
+        if(is.null(x@contacts)) return(NULL)
+        return(get.dates(x@contacts))
+    }
+
+
+    ## list all individuals in the object (in @individuals, @records and @contacts)
+    if(data=="all"){
+        out <- unlist(lapply(c("individuals", "records", "dna"), function(e) as.character(get.dates(x, e))))
+        return(as.Date(out))
+    }
+})
+
+
+
+################
+## get.ndates ##
+################
+setMethod("get.ndates", "obkData", function(x, data=c("all", "individuals", "records", "dna","context", "contacts"),...){
+    return(length(get.dates(x, data=data)))
+})
+
 
 
 ###############
@@ -245,6 +249,11 @@ setMethod("get.ncontacts", "obkData", function(x, from=NULL, to=NULL, ...){
 ## tries to find any type of data within the obkData object
 ##
 setMethod("get.data", "obkData", function(x, data, where=NULL, drop=TRUE, showSource=FALSE, ...){
+    ## disable bloody stringsAsFactor ##
+    o.saf <- options("stringsAsFactors")
+    on.exit(options(o.saf))
+    options(stringsAsFactors=FALSE)
+
     data <- as.character(data)
 
     result <- data.frame()
@@ -252,116 +261,130 @@ setMethod("get.data", "obkData", function(x, data, where=NULL, drop=TRUE, showSo
     ## LOOK FOR SLOT NAMES ##
     if(data[1] %in% slotNames(x)) return(slot(x, data))
 
-    ## HANDLE 'WHERE'
+    ## HANDLE 'WHERE' ##
     if(!is.null(where)){
-        where <- match.arg(as.character(where), c("individuals","samples","clinical"))
+        where <- match.arg(as.character(where), c("individuals", "records", "context", "dna"))
+
+        ## look in @individuals ##
         if(where=="individuals"){
             if(is.null(x@individuals)) { # return NULL if empty
                 warning("x@individuals is NULL")
                 return(NULL)
             }
             if(any(data %in% names(x@individuals))){
-                #temp<-x@individuals[,c(data,"individualID")]
-                temp<-x@individuals[,data,drop=F]
-                temp<-cbind(temp,rownames(x@individuals))
-                temp<-cbind(temp,rep("individuals",dim(temp)[1]))
+                temp<-x@individuals[,data,drop=FALSE] # get data
+                temp<-cbind(temp,rownames(x@individuals)) # add individualID
+                temp<-cbind(temp,rep("individuals",dim(temp)[1])) # add source
                 result<-temp
-                names(result)<-c(data,"individualID","source")
-#                names(result)<-c(data[1],"individualID","source")
+                names(result)<-c(data,"individualID", "source")
             } else {
-                warning(paste("data '", data, "'was not found in @individuals"))
+                warning(paste("data '", data, "' was not found in @individuals",sep=""))
                 return(NULL)
             }
         } # end where==individuals
 
-        if(where=="samples"){
-            if(is.null(x@samples)) { # return NULL if empty
-                warning("x@samples is NULL")
-                return(NULL)
-            }
-            if(any(data %in% names(x@samples))){
-              temp<-x@samples[,c(data,"individualID")]
-              temp<-cbind(temp,rep("samples",dim(temp)[1]))
-              result<-temp
-              names(result)<-c(data,"individualID","source")
-#              names(result)<-c(data[1],"individualID","source")
-            } else {
-                warning(paste("data '", data, "'was not found in @samples"))
-                return(NULL)
-            }
-        } # end where==samples
 
-        if(where=="clinical"){
-            if(is.null(x@clinical)) { # return NULL if empty
-                warning("x@clinical is NULL")
+        ## look in @records ##
+        if(where=="records"){
+            if(is.null(x@records)) { # return NULL if empty
+                warning("x@records is NULL")
                 return(NULL)
             }
-            found=F
-            for(i in 1:length(x@clinical)){
-                if(any(data %in% names(x@clinical[[i]]))){
-                  found=T
-                  temp<-x@clinical[[i]][,c(data,"individualID")]
-                  temp<-cbind(temp,rep(names(x@clinical)[i],dim(temp)[1]))
-                  colnames(temp)<-c(data,"individualID","source")
- #                 colnames(temp)<-c(data[1],"individualID","source")
+            ## look in @records
+            if(any(data %in% names(x@records))){
+                return(x@records[[data]])
+            }
+            ## look within slots in @records
+            found <- FALSE
+            for(i in 1:length(x@records)){
+                if(any(data %in% names(x@records[[i]]))){
+                    found <- TRUE
+                    temp<-x@records[[i]][,c(data,"individualID","date")]
+                    temp<-cbind(temp,rep(names(x@records)[i],dim(temp)[1]))
+                    colnames(temp)<-c(data,"individualID","date","source")
+                    result<-rbind(result,temp)
                 }
-                result<-rbind(result,temp)
             }
             if(!found){
-              warning(paste("data '", data, "'was not found in @clinical"))
-              return(NULL)
+                warning(paste("data '", data, "' was not found in @records", sep=""))
+                return(NULL)
             }
-        } # end where==clinical
+        } # end where==records
+
+
+        ## look in @context ##
+        if(where=="context"){
+            if(is.null(x@context)) { # return NULL if empty
+                warning("x@context is NULL")
+                return(NULL)
+            }
+            ## look in @context
+            if(any(data %in% names(x@context))){
+                return(x@context[[data]])
+            }
+            ## look within elements of @context
+            found <- FALSE
+            for(i in 1:length(x@context)){
+                if(any(data %in% names(x@context[[i]]))){
+                    found <- TRUE
+                    temp<-x@context[[i]][,c(data,"date")]
+                    temp<-cbind(temp,rep(names(x@context)[i],dim(temp)[1]))
+                    colnames(temp)<-c(data,"date","source")
+
+                    result<-rbind(result,temp)
+                }
+            }
+            if(!found){
+                warning(paste("data '", data, "' was not found in @context",sep=""))
+                return(NULL)
+            }
+        } # end where==context
+
+        ## look within elements of @dna ##
+        if(where=="dna"){
+            if(is.null(x@dna)){ # return NULL if empty
+                warning("x@dna is NULL")
+                return(NULL)
+            }
+            if(any(data %in% names(x@dna@meta))){
+                temp <- x@dna@meta[, c(data, "individualID", "date"), drop=FALSE]
+                temp <- cbind(temp,rep("dna",dim(temp)[1]))
+                result <- temp
+                names(result) <- c(data,"individualID", "date", "source")
+            } else {
+                warning(paste("data '", data, "' was not found in @dna",sep=""))
+                return(NULL)
+            }
+        } # end where==dna
+
+
     } # end if 'where' provided
     else{
-    ## else, look everywhere
+        ## ELSE, LOOK EVERYWHERE ##
+        result <- lapply(c("individuals", "records", "context", "dna"), function(e)
+                         suppressWarnings(get.data(x, data=data, where=e, drop=drop, showSource=TRUE)))
 
-      ## LOOK FOR 'DATA' IN INDIVIDUALS ##
-      if(!is.null(x@individuals)){
-          if(any(data %in% names(x@individuals))){
-            #temp<-x@individuals[,c(data,"individualID")]
-            temp<-x@individuals[,data,drop=F]
-            temp<-cbind(temp,rownames(x@individuals))
-            temp<-cbind(temp,rep("individuals",dim(temp)[1]))
-            colnames(temp)<-c(data,"individualID","source")
-#            colnames(temp)<-c(data[1],"individualID","source")
-            result<-temp
-          }
-      }
-      ## LOOK FOR 'DATA' IN SAMPLES ##
-      if(!is.null(x@samples)){
-          if(any(data %in% names(x@samples))){
-            temp<-x@samples[,c(data,"individualID")]
-            temp<-cbind(temp,rep("samples",dim(temp)[1]))
-            colnames(temp)<-c(data,"individualID","source")
-#            colnames(temp)<-c(data[1],"individualID","source")
-            result<-rbind(result,temp)
-          }
-      }
+        result <- Reduce("rbind", result)
+        if(!is.null(result) && nrow(result)>0) rownames(result) <- NULL # rownames are meaningless
 
-      ## LOOK FOR 'DATA' IN CLINICAL ##
-      if(!is.null(x@clinical)){
-          for(i in 1:length(x@clinical)){
-              if(any(data %in% names(x@clinical[[i]]))){
-                temp<-x@clinical[[i]][,c(data,"individualID")]
-                temp<-cbind(temp,rep(names(x@clinical)[i],dim(temp)[1]))
-                colnames(temp)<-c(data,"individualID","source")
-#                colnames(temp)<-c(data[1],"individualID","source")
-                result<-rbind(result,temp)
-              }
-          }
-      }
-  }
+    } # end search everywhere
+
+
+    ## RETURN REQUESTED RESULT ##
     if(length(result)>0){
-      if(showSource)
-        return(result)
-      else
-        return(result[,data,drop=drop])
+        if(showSource)
+            return(result)
+        else
+            if(any(data %in% names(result))){
+                data <- data[data %in% names(result)]
+                result <- result[,data,drop=drop]
+            }
+            return(result)
     }
     else{
-      ## DEFAULT IF WE DON'T KNOW WHAT TO RETURN ##
-      warning(paste("data '", data, "'was not found in the object"))
-      return(NULL)
+        ## DEFAULT IF WE DON'T KNOW WHAT TO RETURN ##
+        warning(paste("data '", data, "' was not found in the object", sep=""))
+        return(NULL)
     }
 }) # end get.data
 

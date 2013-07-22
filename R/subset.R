@@ -4,214 +4,326 @@
 #### SUBSETTING PROCEDURES ####
 ###############################
 
-###################
-## obkData method ##
-###################
-setMethod("subset", "obkData", function(x, individuals=NULL, samples=NULL, locus=NULL, sequences=NULL,
-                                        date.from=NULL, date.to=NULL, date.format=NULL,
-                                        row.individuals=NULL, row.samples=NULL,...){
-    ## CHECK THAT REQUESTED INFO IS THERE ##
-    if(is.null(x@individuals)) {
-        individuals <- row.individuals <- NULL
-    }
-    if(is.null(x@samples)) {
-        samples <- date.from <- date.to <- row.samples <- NULL
-        locus <- sequences <- NULL
-    } else {
-        if(is.null(x@samples$locus)) locus <- NULL
-    }
-    if(is.null(x@dna)){
-        locus <- sequences <- NULL
-    }
+#########################
+## obkSequences method ##
+#########################
+setMethod("subset", "obkSequences", function(x, sequences=NULL, locus=NULL, individuals=NULL,
+                                        date.from=NULL, date.to=NULL, date.format=NULL, ...){
+    ## ESCAPE IF NOTHING IN THE DATASET ##
+    if(get.nsequences(x)==0) return(x)
 
-    ## SUBSET BY ROWS IN @INDIVIDUALS ##
-    if(!is.null(row.individuals)){
-        ## subset @individuals
-        x@individuals <- x@individuals[row.individuals, ,drop=FALSE]
-
-        ## subset @samples
-        if(!is.null(x@samples)) x@samples <- x@samples[x@samples$individualID %in% rownames(x@individuals), ,drop=FALSE]
-
-        ## subset @dna
-        if(!is.null(x@dna)) x@dna@dna <- get.dna(x@dna, id=x@samples$sequenceID)
-
-        ## subset @clinical
-        if(!is.null(x@clinical)){
-            for(i in 1:length(x@clinical)){
-                x@clinical[[i]] <- x@clinical[[i]][x@clinical[[i]]$"individualID" %in% rownames(x@individuals), ,drop=FALSE]
-            }
+    ## SUBSET BY SEQUENCE ID ##
+    if(!is.null(sequences)){
+        ## handle non-character argument ##
+        if(!is.character(sequences)){
+            sequences <- get.sequences(x)[sequences]
         }
 
-    } # end subset by row.individuals
-
-
-    ## SUBSET BY ROWS IN @SAMPLES ##
-    if(!is.null(row.samples)){
-        ## subset @samples
-        if(!is.null(x@samples)) x@samples <- x@samples[row.samples, ,drop=FALSE]
-
-        ## subset @individuals
-       if(!is.null(x@individuals))  x@individuals <-x@individuals[rownames(x@individuals) %in% x@samples$individualID,,drop=FALSE]
-
-        ## subset @dna
-        if(!is.null(x@dna)) x@dna@dna <- get.dna(x@dna, id=x@samples$sequenceID)
-
-        ## subset @clinical
-        if(!is.null(x@clinical)){
-            for(i in 1:length(x@clinical)){
-                x@clinical[[i]] <- x@clinical[[i]][x@clinical[[i]]$"individualID" %in% x@samples$"individualID", ,drop=FALSE]
-            }
+        ## check that all sequences are known ##
+        if(!all(sequences %in% get.sequences(x))){
+            sequences <- na.omit(sequences)
+            temp <- paste(sequences[!sequences %in% get.sequences(x)], collapse=", ")
+            warning(paste("The following sequences were not found in the data:", temp))
+            sequences <- sequences[sequences %in% get.sequences(x)]
         }
 
-    } # end subset by row.individuals
+        ## subset x@dna ##
+        x@dna <- get.dna(x, id=sequences)
+
+        ## subset x@meta ##
+        x@meta <- x@meta[sequences,,drop=FALSE]
+
+    } # end subset by sequence ID
 
 
-    ## SUBSET BY INDIVIDUALS ##
+    ## SUBSET BY LOCUS ##
+    if(!is.null(locus)){
+        locus <- na.omit(locus)
+
+        ## handle non-character argument ##
+        if(!is.character(locus)){
+            locus <- get.locus(x)[locus]
+        }
+
+        ## check that all loci are known ##
+        if(!all(locus %in% get.locus(x))){
+            temp <- paste(locus[!locus %in% get.locus(x)], collapse=", ")
+            warning(paste("The following loci were not found in the data:", temp))
+            locus <- locus[locus %in% get.locus(x)]
+        }
+
+        ## subset x@dna ##
+        x@dna <- x@dna[locus]
+        seq.tokeep <- unlist(lapply(x@dna, rownames))
+
+        ## subset x@meta ##
+        x@meta <- x@meta[seq.tokeep,,drop=FALSE]
+
+    } # end subset by locus
+
+
+     ## SUBSET BY INDIVIDUAL ID ##
     if(!is.null(individuals)){
-        ## process logical/integers/numeric
-        if(is.logical(individuals) || is.integer(individuals) || is.numeric(individuals)){
+        individuals <- na.omit(individuals)
+        ## handle non-character argument ##
+        if(!is.character(individuals)){
             individuals <- get.individuals(x)[individuals]
         }
 
-        ## check that indicated indiv are known
+        ## check that all individuals are known ##
         if(!all(individuals %in% get.individuals(x))){
             temp <- paste(individuals[!individuals %in% get.individuals(x)], collapse=", ")
             warning(paste("The following individuals were not found in the data:", temp))
             individuals <- individuals[individuals %in% get.individuals(x)]
         }
 
-        ## subset @individuals
+        ## find sequences to retain ##
+        seq.tokeep <- rownames(x@meta)[x@meta$individualID %in% individuals]
+
+        ## subset by sequences ##
+        x <- subset(x, sequences=seq.tokeep)
+    } # end subset by individual ID
+
+
+    ## DATES FROM ... ##
+    if(!is.null(date.from)){
+        date.from <- na.omit(date.from)
+
+        ## process date ##
+        date.from <- .process.Date(date.from, format=date.format)
+
+        ## find sequences to retain ##
+        seq.tokeep <- x@meta$date >= date.from
+
+        ## subset by sequences ##
+        x <- subset(x, sequences=seq.tokeep)
+    } # end subset by date.from
+
+
+    ## DATES TO ... ##
+    if(!is.null(date.to)){
+        date.to <- na.omit(date.to)
+
+        ## process date ##
+        date.to <- .process.Date(date.to, format=date.format)
+
+        ## find sequences to retain ##
+        seq.tokeep <- x@meta$date <= date.to
+
+        ## subset by sequences ##
+        x <- subset(x, sequences=seq.tokeep)
+    } # end subset by date.to
+
+    return(x)
+}) # end subset for obkSequences
+
+
+
+
+
+
+########################
+## obkContacts method ##
+########################
+setMethod("subset", "obkContacts", function(x, individuals=NULL, date.from=NULL, date.to=NULL,
+                                            date.format=NULL, ...){
+    ## SUBSET BY INDIVIDUALS ##
+    if(!is.null(individuals)){
+        individuals <- na.omit(individuals)
+
+        ## handle non-character argument ##
+        if(!is.character(individuals)){
+            individuals <- get.individuals(x)[individuals]
+        }
+
+        ## check that all individuals are known ##
+        if(!all(individuals %in% get.individuals(x))){
+            temp <- paste(individuals[!individuals %in% get.individuals(x)], collapse=", ")
+            warning(paste("The following individuals were not found in the data:", temp))
+            individuals <- individuals[individuals %in% get.individuals(x)]
+        }
+
+        ## escape if < 2 individuals ##
+        if(length(individuals)<2) return(NULL)
+
+        ## delete obsolete edges ##
+        toRemove <- which(!network.vertex.names(x@contacts) %in%  individuals) # individuals to remove
+        x@contacts <- delete.vertices(x@contacts, toRemove) # remove vertices
+    }
+
+    ## DATES FROM ... ##
+    if(!is.null(date.from)){
+        date.from <- na.omit(date.from)
+
+        ## subset contacts ##
+        if(inherits(x@contacts, "networkDynamic")){
+            x@contacts <- get.contacts(x, from=date.from, to=Inf)
+        }
+    } # end subset by date.from
+
+
+    ## DATES TO ... ##
+    if(!is.null(date.to)){
+        date.to <- na.omit(date.to)
+
+        ## subset contacts ##
+        if(inherits(x@contacts, "networkDynamic")){
+            x@contacts <- get.contacts(x, from=-1, to=date.to)
+        }
+    } # end subset by date.to
+
+    ## do not return graphs with no edge ##
+    if(nrow(suppressWarnings(as.data.frame(x))) < 1) return(NULL)
+
+    return(x)
+}) # end subset for obkContacts
+
+
+
+
+
+####################
+## obkData method ##
+####################
+setMethod("subset", "obkData", function(x, individuals=NULL, locus=NULL, sequences=NULL,
+                                        date.from=NULL, date.to=NULL, date.format=NULL,
+                                        ...){
+    ## CHECK THAT REQUESTED INFO IS THERE ##
+    if(is.null(x@individuals)) {
+        individuals <- NULL
+    }
+
+    if(is.null(x@dna)){
+        locus <- sequences <- NULL
+    }
+
+
+    ## SUBSET BY INDIVIDUALS ##
+    if(!is.null(individuals)){
+        individuals <- na.omit(individuals)
+
+        ## handle non-character argument ##
+        if(!is.character(individuals)){
+            individuals <- get.individuals(x)[individuals]
+        }
+
+        ## check that all individuals are known ##
+        if(!all(individuals %in% get.individuals(x))){
+            temp <- paste(individuals[!individuals %in% get.individuals(x)], collapse=", ")
+            warning(paste("The following individuals were not found in the data:", temp))
+            individuals <- individuals[individuals %in% get.individuals(x)]
+        }
+
+        ## subset @individuals ##
         if(!is.null(x@individuals)) x@individuals <- x@individuals[individuals, ,drop=FALSE]
 
-        ## subset @samples
-        if(!is.null(x@samples)) x@samples <- x@samples[x@samples$individualID %in% individuals, ,drop=FALSE]
+        ## subset @dna ##
+        if(!is.null(x@dna)) x@dna <- suppressWarnings(subset(x@dna, individuals=individuals))
 
-        ## subset @dna
-        if(!is.null(x@dna)) x@dna@dna <- get.dna(x@dna, id=x@samples$sequenceID)
-
-        ## subset @clinical
-        if(!is.null(x@clinical)){
-            for(i in 1:length(x@clinical)){
-                x@clinical[[i]] <- x@clinical[[i]][x@clinical[[i]]$"individualID" %in% rownames(x@individuals), ,drop=FALSE]
+        ## subset @records ##
+        if(!is.null(x@records)){
+            for(i in 1:length(x@records)){
+                x@records[[i]] <- x@records[[i]][x@records[[i]]$"individualID" %in% individuals, ,drop=FALSE]
             }
         }
 
-    } # end processing 'individuals' argument
-
-
-    ## SUBSET BY SAMPLE ##
-    if(!is.null(samples)){
-        ## process logical/integers/numeric
-        if(is.logical(samples) || is.integer(samples) || is.numeric(samples)){
-            samples <- get.samples(x)[samples]
+        ## subset @contacts ##
+        if(!is.null(x@contacts)){
+            x@contacts <- suppressWarnings(subset(x@contacts, individuals=individuals))
         }
-
-        ## check that indicated samples are known
-        if(!all(samples %in% x@samples$sampleID)){
-            temp <- paste(samples[!samples %in% x@samples$sampleID], collapse=", ")
-            warning(paste("The following samples were not found in the data:", temp))
-            samples <- samples[samples %in% x@samples$sampleID]
-        }
-
-        ## subset @samples
-        if(!is.null(x@samples)) x@samples <-x@samples[x@samples$sampleID %in% samples, ,drop=FALSE]
-
-        ## subset @individuals
-       if(!is.null(x@individuals))  x@individuals <-x@individuals[rownames(x@individuals) %in% x@samples$individualID,,drop=FALSE]
-
-        ## subset @dna
-       if(!is.null(x@dna))  x@dna@dna <- get.dna(x@dna, id=x@samples$sequenceID)
-
-        ## subset @clinical
-        if(!is.null(x@clinical)){
-            for(i in 1:length(x@clinical)){
-                x@clinical[[i]] <- x@clinical[[i]][x@clinical[[i]]$"individualID" %in% x@samples$"individualID", ,drop=FALSE]
-            }
-        }
-
-    } # end processing 'samples' argument
-
-
-    ## SUBSET BY DATES ##
-    ## dates from ... ##
-    if(!is.null(date.from)){
-        date.from <- .process.Date(date.from, format=date.format)
-        samples.tokeep <- x@samples$date >= date.from
-        x <- subset(x, row.samples=samples.tokeep)
-        if(!is.null(x@contacts) && inherits(x@contacts@contacts, "networkDynamic")){
-            x@contacts@contacts <- network.extract(x@contacts@contacts, onset=date.from)
-        }
-    }
-
-    ## dates to ... ##
-    if(!is.null(date.to)){
-        date.to <- .process.Date(date.to, format=date.format)
-        samples.tokeep <- x@samples$date <= date.to
-        x <- subset(x, row.samples=samples.tokeep)
-        if(!is.null(x@contacts) && inherits(x@contacts@contacts, "networkDynamic")){
-            x@contacts@contacts <- network.extract(x@contacts@contacts, terminus=date.to)
-        }
-    }
+    } # end subsetting by individuals
 
 
     ## SUBSET BY LOCUS ##
     if(!is.null(locus)){
-        ## process logical/integers/numeric
-        if(is.logical(locus) || is.integer(locus) || is.numeric(locus)){
-            locus <- get.locus(x)[locus]
+        locus <- na.omit(locus)
+
+        ## subset @dna ##
+        if(!is.null(x@dna)) x@dna <- subset(x@dna, locus=locus)
+
+        ## keep only relevant individuals ##
+        x <- suppressWarnings(subset(x, individuals=get.individuals(x@dna)))
+
+        ## keep only relevant dates ##
+        x <- subset(x, date.from=min(get.dates(x@dna),na.rm=TRUE), date.to=max(get.dates(x@dna),na.rm=TRUE))
+
+        ## subset @contacts ##
+        if(!is.null(x@contacts)){
+            x@contacts <- suppressWarnings(subset(x@contacts, individuals=get.individuals(x@dna)))
         }
 
-        ## subset @samples
-        if(!is.null(x@samples)) x@samples <- x@samples[x@samples$locus %in% locus,,drop=FALSE]
-
-        ## subset @individuals
-        if(!is.null(x@individuals)) x@individuals <-x@individuals[rownames(x@individuals) %in% x@samples$individualID,,drop=FALSE]
-
-        ## subset @dna
-        if(!is.null(x@dna)) x@dna@dna <- get.dna(x@dna, id=x@samples$sequenceID)
-
-        ## subset @clinical
-        if(!is.null(x@clinical)){
-            for(i in 1:length(x@clinical)){
-                x@clinical[[i]] <- x@clinical[[i]][x@clinical[[i]]$"individualID" %in% x@samples$"individualID", ,drop=FALSE]
-            }
-        }
-
-    }
+    } # end subsetting by locus
 
 
-    ## SUBSET BY SEQUENCE ID ##
+    ## SUBSET BY SEQUENCES ##
     if(!is.null(sequences)){
-        ## process logical/integers/numeric
-        if(is.logical(sequences) || is.integer(sequences) || is.numeric(sequences)){
-            sequences <- get.sequences(x)[sequences]
+        sequences <- na.omit(sequences)
+
+        ## subset @dna ##
+        if(!is.null(x@dna)) x@dna <- subset(x@dna, sequences=sequences)
+
+        ## keep only relevant individuals ##
+        x <- suppressWarnings(subset(x, individuals=get.individuals(x@dna)))
+
+        ## keep only relevant dates ##
+        x <- subset(x, date.from=min(get.dates(x@dna),na.rm=TRUE), date.to=max(get.dates(x@dna),na.rm=TRUE))
+
+        ## subset @contacts ##
+        if(!is.null(x@contacts)){
+            x@contacts <- suppressWarnings(subset(x@contacts, individuals=get.individuals(x@dna)))
         }
 
-        ## subset @samples
-        if(!is.null(x@samples)) x@samples <- x@samples[x@samples$sequenceID %in% sequences,,drop=FALSE]
+    } # end subsetting by sequences
 
-        ## subset @individuals
-        if(!is.null(x@individuals)) x@individuals <-x@individuals[rownames(x@individuals) %in% x@samples$individualID,,drop=FALSE]
 
-        ## subset @dna
-        if(!is.null(x@dna)) x@dna@dna <- get.dna(x@dna, id=x@samples$sequenceID)
+    ## DATES FROM ... ##
+    if(!is.null(date.from)){
+        date.from <- na.omit(date.from)
 
-        ## subset @clinical
-        if(!is.null(x@clinical)){
-            for(i in 1:length(x@clinical)){
-                x@clinical[[i]] <- x@clinical[[i]][x@clinical[[i]]$"individualID" %in% x@samples$"individualID", ,drop=FALSE]
+        ## process date ##
+        date.from <- .process.Date(date.from, format=date.format)
+
+        ## subset @dna ##
+        if(!is.null(x@dna)) x@dna <- subset(x@dna, date.from=date.from)
+
+        ## subset records ##
+        if(!is.null(x@records)){
+            for(i in 1:length(x@records)){
+                x@records[[i]] <- x@records[[i]][x@records[[i]]$"date" >= date.from, ,drop=FALSE]
             }
         }
 
-    }
+        ## subset contacts ##
+        if(!is.null(x@contacts) && inherits(x@contacts@contacts, "networkDynamic")){
+            x@contacts <- subset(x@contacts, date.from=date.from)
+        }
+    } # end subset by date.from
 
 
-    ## SUBSET CONTACTS
-    ## subset @contacts - static or dynamic network
-    if(!is.null(x@contacts)){
-        toRemove <- which(!network.vertex.names(x@contacts@contacts) %in%  rownames(x@individuals)) # individuals to remove
-        x@contacts@contacts <- delete.vertices(x@contacts@contacts, toRemove) # remove vertices
-    }
+    ## DATES TO ... ##
+    if(!is.null(date.to)){
+        date.to <- na.omit(date.to)
+
+        ## process date ##
+        date.to <- .process.Date(date.to, format=date.format)
+
+        ## subset @dna ##
+        if(!is.null(x@dna)) x@dna <- subset(x@dna, date.to=date.to)
+
+        ## subset records ##
+        if(!is.null(x@records)){
+            for(i in 1:length(x@records)){
+                x@records[[i]] <- x@records[[i]][x@records[[i]]$"date" <= date.to, ,drop=FALSE]
+            }
+        }
+
+        ## subset contacts ##
+        if(!is.null(x@contacts) && inherits(x@contacts@contacts, "networkDynamic")){
+            x@contacts <- subset(x@contacts, date.to=date.to)
+        }
+    } # end subset by date.to
+
+
 
     ## SUBSET @TREES ##
     ## these only depend on @sample, so only one code is useful here
@@ -222,9 +334,17 @@ setMethod("subset", "obkData", function(x, individuals=NULL, samples=NULL, locus
             if(length(setdiff(x@trees[[i]]$tip.label, toDrop))==1){
                 x@trees <- x@trees[-i]
             } else {
-                x@trees[[i]] <- drop.tip(x@trees[[i]], tip=toDrop, trim.internal=TRUE, subtree=FALSE)
+                temp <- drop.tip(x@trees[[i]], tip=toDrop, trim.internal=TRUE, subtree=FALSE)
+                if(is.null(temp)) {
+                    x@trees <- x@trees[-i]
+                } else {
+                    x@trees[[i]] <- drop.tip(x@trees[[i]], tip=toDrop, trim.internal=TRUE, subtree=FALSE)
+                }
             }
         }
+
+        ## set slot to NULL if no tree left
+        if(length(x@trees)==0) x@trees <- NULL
     }
 
     return(x)

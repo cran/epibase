@@ -3,10 +3,13 @@
 
 # Export all names
 exportPattern("^[^\\.]")
-
+export(".process.Date")
+export(".inlineSummary")
 
 # Import all packages listed as Imports or Depends
-import(methods, network, ggplot2, plyr, knitr)
+import(methods, network, ggplot2, knitr)
+
+# to try: importFrom(plyr, "rename")
 
 importFrom(utils, "packageDescription")
 
@@ -18,8 +21,8 @@ importFrom(ape, "as.character.DNAbin", "as.DNAbin", "as.DNAbin.alignment", "as.D
            "[[.multiPhylo", "$<-.multiPhylo", "$.multiPhylo", "plot.multiPhylo", "print.multiPhylo",
            "axisPhylo", ".compressTipLabel", "clado.build")
 
-importFrom(adegenet, "bluepal", "redpal", "greenpal", "seasun", "spectral", "funky", "num2col",
-           "fac2col", "any2col", "transp", "findMutations", "findMutations.DNAbin")
+## importFrom(adegenet, "bluepal", "redpal", "greenpal", "seasun", "spectral", "funky", "num2col",
+##            "fac2col", "any2col", "transp", "findMutations", "findMutations.DNAbin")
 
 importFrom(RColorBrewer, "brewer.pal.info", "brewer.pal")
 
@@ -29,7 +32,7 @@ importFrom(sna, "gplot.layout.fruchtermanreingold", "geodist")
 
 importFrom(ggmap, "geocode", "get_map", "ggmap")
 
-importFrom(networkDynamic, "activate.edges", "network.extract", "is.networkDynamic", "network.collapse")
+importFrom(networkDynamic, "activate.edges", "network.extract", "is.networkDynamic", "network.collapse", "get.change.times", "as.data.frame.networkDynamic")
 
 importFrom(scales, "date_breaks", "date_format")
 

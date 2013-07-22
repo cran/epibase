@@ -2,15 +2,15 @@
 \alias{plotggphy}
 \title{Function to plot phylogenies using \code{\link{ggplot2}}}
 \usage{
-  plotggphy(x, which.tree = 1, ladderize = FALSE,
-    show.tip.label = FALSE, tip.label.size = 3,
-    build.tip.attribute = FALSE, tip.colour = NULL,
+  plotggphy(x, which.tree = 1, ladderize = TRUE,
+    show.tip.label = NULL, tip.label.size = 3,
+    build.tip.attribute = TRUE, tip.color = NULL,
     tip.alpha = NULL, tip.shape = NULL, tip.size = NULL,
     branch.unit = NULL, tip.dates = NULL,
     guess.tip.dates.from.labels = FALSE,
     set.guess = list(prefix = "_", order = 1, from = "last"),
     axis.date.format = NULL, major.breaks = NULL,
-    minor.breaks = NULL, colour.palette = "Spectral",
+    minor.breaks = NULL, color.palette = "Spectral",
     legend.position = "right")
 }
 \arguments{
@@ -24,7 +24,8 @@
   ladderized}
 
   \item{show.tip.label}{Logical. If \code{TRUE}, the labels
-  of the tip are shown.}
+  of the tip are shown; if \code{NULL} (default), labels are shown for
+  tree sizes up to 50 tips.}
 
   \item{tip.label.size}{Numeric. Size of the tip labels.}
 
@@ -33,7 +34,7 @@
   merging the data frames \code{individuals} and
   \code{samples}.}
 
-  \item{tip.colour}{Character. Can be either the name of a
+  \item{tip.color}{Character. Can be either the name of a
   color (e.g. "Black") or the name of a column of
   \code{tip.attribute}. In the first case, all tips have
   the specified color. In the second case, tips are
@@ -92,7 +93,7 @@
   when x is in date format). Ex: "weeks", "15days",
   "months", etc.}
 
-  \item{colour.palette}{Character. The palette for tip
+  \item{color.palette}{Character. The palette for tip
   colors. Only palettes from the package
   \code{\link{RColorBrewer}} are available. See
   \code{\link{brewer.pal}} documentation for more details.}
@@ -107,39 +108,38 @@
 \examples{
 ## load the dataset
 data(FluH1N1pdm2009)
-## create obkData object
-x <- new("obkData", individuals = FluH1N1pdm2009$individuals, samples =
-         FluH1N1pdm2009$samples, dna = FluH1N1pdm2009$dna,
-         trees = FluH1N1pdm2009$trees)
+attach(FluH1N1pdm2009)
+
+x <- new("obkData", individuals = individuals, dna = FluH1N1pdm2009$dna,
+      dna.individualID = samples$individualID, dna.date = samples$date,
+      trees = FluH1N1pdm2009$trees)
+
+detach(FluH1N1pdm2009)
+
+
+## have a look at the summary
+summary(x)
 
 ## first simple tree
-p <- plotggphy(x, ladderize = TRUE)
+p <- plotggphy(x, ladderize = FALSE)
 
 ## build tip attribute and use sample dates to scale the x-axis as date time
-p <- plotggphy(x, ladderize = TRUE, build.tip.attribute = TRUE,
-               branch.unit = "year", tip.dates = "date")
-
-## alternatively extract sample dates from the tip labels
-p <- plotggphy(x, ladderize = TRUE, branch.unit = "year",
-               guess.tip.dates.from.labels = TRUE, set.guess =
-               list(prefix = "_", order = 1, from = "last"))
+p <- plotggphy(x, branch.unit = "year")
 
 ## change x breaks and labels
-p <- plotggphy(x, ladderize = TRUE, build.tip.attribute = TRUE,
-               branch.unit = "year", tip.dates = "date",
-               major.breaks = "month", axis.date.format = "\%b\%Y")
+p <- plotggphy(x, branch.unit = "year", major.breaks = "month",
+       axis.date.format = "\%b\%Y")
 
 ## color-code tip location
-p <- plotggphy(x, ladderize = TRUE, build.tip.attribute = TRUE,
-               branch.unit = "year", tip.dates = "date",
-               tip.colour = "location")
+p <- plotggphy(x, branch.unit = "year", show.tip=FALSE, tip.color = "location")
 
 ## change tip size and transparency
-p <- plotggphy(x, ladderize = TRUE, build.tip.attribute = TRUE,
-               branch.unit = "year", tip.dates = "date",
-               tip.colour = "location", tip.size = 3, tip.alpha = 0.75)
+p <- plotggphy(x, branch.unit = "year", tip.color = "location",
+               tip.size = 3, tip.alpha = 0.75)
+
+
 }
 \author{
-  Anton Camacho
+  Original versoin by Anton Camacho, modified by Thibaut Jombart.
 }
 

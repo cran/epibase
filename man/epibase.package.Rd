@@ -9,7 +9,7 @@
   disease outbreaks. Its main features lie in handling possibly very
   different types of data within a coherent framework, represented by the
   class \linkS4class{obkData} (for "outbreak data"). This class allows
-  to store and manipulate data on samples, individuals, clinical
+  to store and manipulate data on samples, individuals, records
   interventions, genetic sequences, phylogenetic trees and contact
   networks, most of this information being time-stamped and possibly
   geo-referenced.\cr
@@ -69,8 +69,8 @@
   \tabular{ll}{
     Package: \tab epibase\cr
     Type: \tab Package\cr
-    Version: \tab 0.1-0\cr
-    Date: \tab 2013-05-22 \cr
+    Version: \tab 0.1-3\cr
+    Date: \tab 2013-07-22 \cr
     License: \tab GPL (>=2)
   }
 }

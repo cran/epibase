@@ -22,16 +22,16 @@
 setGeneric("get.dna", function(x, ...) standardGeneric("get.dna"))
 
 
-#############
+################
 ## get.ntrees ##
-#############
+################
 ## return multiPhylo object (list of trees)
 setGeneric("get.ntrees", function(x, ...) standardGeneric("get.ntrees"))
 
 
-#############
+##############
 ## get.trees ##
-#############
+##############
 ## return multiPhylo object (list of trees)
 setGeneric("get.trees", function(x, ...) standardGeneric("get.trees"))
 
@@ -64,24 +64,6 @@ setGeneric("get.sequences", function(x, ...) standardGeneric("get.sequences"))
 setGeneric("get.nsequences", function(x, ...) standardGeneric("get.nsequences"))
 
 
-##################
-## get.nsamples ##
-##################
-## return the number of samples in the object
-setGeneric("get.nsamples", function(x, ...) standardGeneric("get.nsamples"))
-
-
-#################
-## get.samples ##
-#################
-## return the number of samples in the object
-setGeneric("get.samples", function(x, ...) standardGeneric("get.samples"))
-
-## ####################
-## ## get.sampletype ##
-## ####################
-## setGeneric("get.sampletype",function(x, ...) standardGeneric("get.sampletype"))
-
 
 #####################
 ## get.individuals ##
@@ -100,37 +82,45 @@ setGeneric("get.nindividuals", function(x, ...) standardGeneric("get.nindividual
 
 
 #################
-## get.samples ##
+## get.records ##
 #################
-## return the samples in the object
-setGeneric("get.samples", function(x, ...) standardGeneric("get.samples"))
-
+## return the names of the records tables in the object
+setGeneric("get.records", function(x, ...) standardGeneric("get.records"))
 
 
 ##################
-## get.nsamples ##
+## get.nrecords ##
 ##################
-## return the number of samples in the object
-setGeneric("get.nsamples", function(x, ...) standardGeneric("get.nsamples"))
+## return the number of records tables in the object
+setGeneric("get.nrecords", function(x, ...) standardGeneric("get.nrecords"))
+
 
 #################
-## get.clinicals ##
+## get.context ##
 #################
-## return the names of the clinical tables in the object
-setGeneric("get.clinicals", function(x, ...) standardGeneric("get.clinicals"))
+## return the names of the context tables in the object
+setGeneric("get.context", function(x, ...) standardGeneric("get.context"))
 
 
 ##################
-## get.nclinicals ##
+## get.ncontext ##
 ##################
-## return the number of clinical tables in the object
-setGeneric("get.nclinicals", function(x, ...) standardGeneric("get.nclinicals"))
+## return the number of context tables in the object
+setGeneric("get.ncontext", function(x, ...) standardGeneric("get.ncontext"))
 
-#################
+
+###############
 ## get.dates ##
-#################
+###############
 ## return the dates in the object
 setGeneric("get.dates", function(x, ...) standardGeneric("get.dates"))
+
+
+#################
+## get.ndates ##
+#################
+## return the dates in the object
+setGeneric("get.ndates", function(x, ...) standardGeneric("get.ndates"))
 
 
 ##################
@@ -170,3 +160,10 @@ setGeneric("subset", function(x, ...) standardGeneric("subset"))
 ###############
 ## return DNA sequence alignments
 setGeneric("make.phylo", function(x, ...) standardGeneric("make.phylo"))
+
+
+
+## ###################
+## ## get.incidence ##
+## ###################
+## setGeneric("get.incidence", function(x, ...) standardGeneric("get.incidence"))
